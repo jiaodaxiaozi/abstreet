@@ -369,9 +369,12 @@ fn is_road(tags: &mut Tags, opts: &Options) -> bool {
     };
 
     if !vec![
+        "cycleway",
+        "footway",
         "living_street",
         "motorway",
         "motorway_link",
+        "path",
         "primary",
         "primary_link",
         "residential",
@@ -393,6 +396,13 @@ fn is_road(tags: &mut Tags, opts: &Options) -> bool {
     // allowed here is just based on what's been encountered so far in Seattle and Kraków.
     if highway == "service" && !tags.is("psv", "yes") && !tags.is("bus", "yes") {
         return false;
+    }
+
+    // Just for bikes...
+    if tags.is_any(osm::HIGHWAY, vec!["footway", "path"]) {
+        if !tags.is_any("bicycle", vec!["yes", "designated"]) {
+            return false;
+        }
     }
 
     // It's a road! Now fill in some possibly missing data.

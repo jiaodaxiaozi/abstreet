@@ -393,8 +393,10 @@ impl Road {
 
             "residential" => 5,
             "living_street" => 3,
+            "cycleway" => 2,
 
             "footway" => 1,
+            "path" => 1,
 
             "unclassified" => 0,
             "road" => 0,

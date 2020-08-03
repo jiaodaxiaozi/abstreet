@@ -521,6 +521,9 @@ fn osm_rank_to_color(cs: &ColorScheme, rank: usize) -> Color {
         cs.unzoomed_highway
     } else if rank >= 6 {
         cs.unzoomed_arterial
+    } else if rank == 2 {
+        // Special case for cycleways
+        cs.unzoomed_trail
     } else {
         cs.unzoomed_residential
     }

@@ -68,8 +68,27 @@ pub fn get_lane_specs(tags: &Tags) -> Vec<LaneSpec> {
     if tags.is_any("railway", vec!["light_rail", "rail"]) {
         return LaneSpec::normal(vec![LaneType::LightRail], Vec::new());
     }
+    if tags.is(osm::HIGHWAY, "cycleway") {
+        // TODO https://github.com/dabreegster/abstreet/issues/139
+        // Really these should be modelled very differently. But in the short term, include them in
+        // some form.
+        let lanes = if tags.is_any("foot", vec!["yes", "designated"]) {
+            vec![LaneType::Biking, LaneType::Sidewalk]
+        } else {
+            vec![LaneType::Biking]
+        };
+        if tags.is("oneway", "yes") {
+            return LaneSpec::normal(lanes, Vec::new());
+        } else {
+            return LaneSpec::normal(lanes.clone(), lanes);
+        }
+    }
     if tags.is(osm::HIGHWAY, "footway") {
-        return LaneSpec::normal(vec![LaneType::Sidewalk], Vec::new());
+        assert!(tags.is_any("bicycle", vec!["yes", "designated"]));
+        return LaneSpec::normal(
+            vec![LaneType::Biking, LaneType::Sidewalk],
+            vec![LaneType::Biking, LaneType::Sidewalk],
+        );
     }
 
     // TODO Reversible roads should be handled differently?
