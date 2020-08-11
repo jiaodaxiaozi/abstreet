@@ -24,9 +24,9 @@ pub use crate::render::pedestrian::{DrawPedCrowd, DrawPedestrian};
 pub use crate::render::road::DrawRoad;
 pub use crate::render::traffic_signal::{draw_signal_phase, make_signal_diagram};
 pub use crate::render::turn::{DrawTurnGroup, DrawUberTurnGroup};
-use ezgui::{GfxCtx, Prerender};
+use ezgui::{Color, GfxCtx, Prerender};
 use geom::{Distance, Polygon, Pt2D};
-use map_model::{IntersectionID, Map};
+use map_model::{osm, IntersectionID, Map};
 use sim::{DrawCarInput, VehicleType};
 
 pub const BIG_ARROW_THICKNESS: Distance = Distance::const_meters(0.5);
@@ -82,5 +82,13 @@ impl DrawOptions {
             suppress_traffic_signal_details: Vec::new(),
             label_buildings: false,
         }
+    }
+}
+
+pub fn osm_rank_to_color(cs: &ColorScheme, rank: osm::RoadRank) -> Color {
+    match rank {
+        osm::RoadRank::Highway => cs.zoomed_highway,
+        osm::RoadRank::Arterial => cs.zoomed_arterial,
+        osm::RoadRank::Local => cs.zoomed_residential,
     }
 }
