@@ -144,8 +144,27 @@ fn fix_old_lane_cmds(value: &mut Value, map: &Map) -> Result<(), String> {
                 })
                 .to_perma(map);
             *orig = serde_json::to_value(replace).unwrap();
+        } else if let Some(obj) = cmd.remove("ReverseLane") {
+            let obj: ReverseLane = serde_json::from_value(obj).unwrap();
+            let (r, idx) = obj.l.lookup(map)?;
+            let dst_i = map.find_i_by_osm_id(obj.dst_i)?;
+            let edits_dir = if dst_i == r.dst_i {
+                Direction::Fwd
+            } else if dst_i == r.src_i {
+                Direction::Back
+            } else {
+                return Err(format!("{:?}'s road doesn't point to dst_i at all", obj));
+            };
+            if r.lanes_ltr()[idx].1 == edits_dir {
+                return Err(format!("{:?}'s road already points to dst_i", obj));
+            }
+            let replace = map
+                .edit_road_cmd(r.id, |new| {
+                    new.lanes_ltr[idx].1 = edits_dir;
+                })
+                .to_perma(map);
+            *orig = serde_json::to_value(replace).unwrap();
         } else if let Some(obj) = cmd.remove("ChangeSpeedLimit") {
-            // TODO ReverseLane
             let obj: ChangeSpeedLimit = serde_json::from_value(obj).unwrap();
             let r = map.get_r(map.find_r_by_osm_id(obj.id)?);
             if r.speed_limit != obj.old {
