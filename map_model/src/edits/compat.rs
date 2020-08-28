@@ -40,8 +40,6 @@ pub fn upgrade(mut value: Value, map: &Map) -> Result<PermanentMapEdits, String>
             .insert("version".to_string(), Value::Number(2.into()));
     }
 
-    println!("DONE! {}", value.to_string());
-
     abstutil::from_json(&value.to_string().into_bytes()).map_err(|x| x.to_string())
 }
 
@@ -129,11 +127,11 @@ fn fix_road_direction(value: &mut Value) {
 fn fix_old_lane_cmds(value: &mut Value, map: &Map) -> Result<(), String> {
     // TODO Can we assume map is in its original state? I don't think so... it may have edits
     // applied, right?
-    for cmd in value.as_object_mut().unwrap()["commands"]
+    for orig in value.as_object_mut().unwrap()["commands"]
         .as_array_mut()
         .unwrap()
     {
-        let cmd = cmd.as_object_mut().unwrap();
+        let cmd = orig.as_object_mut().unwrap();
         if let Some(obj) = cmd.remove("ChangeLaneType") {
             let obj: ChangeLaneType = serde_json::from_value(obj).unwrap();
             let (r, idx) = obj.id.lookup(map)?;
@@ -145,13 +143,9 @@ fn fix_old_lane_cmds(value: &mut Value, map: &Map) -> Result<(), String> {
                     new.lanes_ltr[idx].0 = obj.lt;
                 })
                 .to_perma(map);
-            cmd.insert(
-                "ChangeRoad".to_string(),
-                serde_json::to_value(replace).unwrap(),
-            );
-        }
-        // TODO ReverseLane
-        if let Some(obj) = cmd.remove("ChangeSpeedLimit") {
+            *orig = serde_json::to_value(replace).unwrap();
+        } else if let Some(obj) = cmd.remove("ChangeSpeedLimit") {
+            // TODO ReverseLane
             let obj: ChangeSpeedLimit = serde_json::from_value(obj).unwrap();
             let r = map.get_r(map.find_r_by_osm_id(obj.id)?);
             if r.speed_limit != obj.old {
@@ -162,12 +156,8 @@ fn fix_old_lane_cmds(value: &mut Value, map: &Map) -> Result<(), String> {
                     new.speed_limit = obj.new;
                 })
                 .to_perma(map);
-            cmd.insert(
-                "ChangeRoad".to_string(),
-                serde_json::to_value(replace).unwrap(),
-            );
-        }
-        if let Some(obj) = cmd.remove("ChangeAccessRestrictions") {
+            *orig = serde_json::to_value(replace).unwrap();
+        } else if let Some(obj) = cmd.remove("ChangeAccessRestrictions") {
             let obj: ChangeAccessRestrictions = serde_json::from_value(obj).unwrap();
             let r = map.get_r(map.find_r_by_osm_id(obj.id)?);
             if r.access_restrictions != obj.old {
@@ -178,10 +168,9 @@ fn fix_old_lane_cmds(value: &mut Value, map: &Map) -> Result<(), String> {
                     new.access_restrictions = obj.new.clone();
                 })
                 .to_perma(map);
-            cmd.insert(
-                "ChangeRoad".to_string(),
-                serde_json::to_value(replace).unwrap(),
-            );
+            *orig = serde_json::to_value(replace).unwrap();
+        } else {
+            return Err(format!("Unrecognized command: {:?}", cmd));
         }
     }
     Ok(())
