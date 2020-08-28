@@ -102,7 +102,8 @@ impl MapEdits {
     pub fn load(map: &Map, path: String, timer: &mut Timer) -> Result<MapEdits, String> {
         match abstutil::maybe_read_json(path.clone(), timer) {
             Ok(perma) => PermanentMapEdits::from_permanent(perma, map),
-            Err(_) => {
+            Err(err) => {
+                println!("orig failed bc {}", err);
                 let bytes = abstutil::slurp_file(&path).map_err(|err| err.to_string())?;
                 let contents = std::str::from_utf8(&bytes).map_err(|err| err.to_string())?;
                 let value = serde_json::from_str(contents).map_err(|err| err.to_string())?;

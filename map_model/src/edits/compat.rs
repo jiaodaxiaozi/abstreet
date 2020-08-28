@@ -40,6 +40,8 @@ pub fn upgrade(mut value: Value, map: &Map) -> Result<PermanentMapEdits, String>
             .insert("version".to_string(), Value::Number(2.into()));
     }
 
+    println!("DONE! {}", value.to_string());
+
     abstutil::from_json(&value.to_string().into_bytes()).map_err(|x| x.to_string())
 }
 
@@ -141,6 +143,39 @@ fn fix_old_lane_cmds(value: &mut Value, map: &Map) -> Result<(), String> {
             let replace = map
                 .edit_road_cmd(r.id, |new| {
                     new.lanes_ltr[idx].0 = obj.lt;
+                })
+                .to_perma(map);
+            cmd.insert(
+                "ChangeRoad".to_string(),
+                serde_json::to_value(replace).unwrap(),
+            );
+        }
+        // TODO ReverseLane
+        if let Some(obj) = cmd.remove("ChangeSpeedLimit") {
+            let obj: ChangeSpeedLimit = serde_json::from_value(obj).unwrap();
+            let r = map.get_r(map.find_r_by_osm_id(obj.id)?);
+            if r.speed_limit != obj.old {
+                return Err(format!("{:?} speed limit has changed", obj));
+            }
+            let replace = map
+                .edit_road_cmd(r.id, |new| {
+                    new.speed_limit = obj.new;
+                })
+                .to_perma(map);
+            cmd.insert(
+                "ChangeRoad".to_string(),
+                serde_json::to_value(replace).unwrap(),
+            );
+        }
+        if let Some(obj) = cmd.remove("ChangeAccessRestrictions") {
+            let obj: ChangeAccessRestrictions = serde_json::from_value(obj).unwrap();
+            let r = map.get_r(map.find_r_by_osm_id(obj.id)?);
+            if r.access_restrictions != obj.old {
+                return Err(format!("{:?} access restrictions have changed", obj));
+            }
+            let replace = map
+                .edit_road_cmd(r.id, |new| {
+                    new.access_restrictions = obj.new.clone();
                 })
                 .to_perma(map);
             cmd.insert(
